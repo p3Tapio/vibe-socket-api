@@ -1,28 +1,42 @@
 const WebSocket = require("ws");
-const https = require("https");
+// const https = require("https");
 const http = require("http");
-const fs = require("fs");
+const express = require("express");
+const cors = require("cors");
+// const fs = require("fs");
 const crypto = require("crypto");
 
-// HTTPS server for WSS
-const httpsOptions = {
-  key: fs.readFileSync("./certs/key.pem"),
-  cert: fs.readFileSync("./certs/cert.pem"),
-};
+const oembedRoutes = require("./routes/oembed");
 
-const httpsServer = https.createServer(httpsOptions, (req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("WebSocket Secure server is running");
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use("/oembed", oembedRoutes);
+app.get("/", (req, res) => {
+  res.send("WebSocket server is running");
 });
+
+// HTTPS server for WSS
+// const httpsOptions = {
+//   key: fs.readFileSync("./certs/key.pem"),
+//   cert: fs.readFileSync("./certs/cert.pem"),
+// };
+//
+// const httpsServer = https.createServer(httpsOptions, (req, res) => {
+//   res.writeHead(200, { "Content-Type": "text/plain" });
+//   res.end("WebSocket Secure server is running");
+// });
 
 // HTTP server for WS
-const httpServer = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("WebSocket server is running");
-});
+// const httpServer = http.createServer((req, res) => {
+//   res.writeHead(200, { "Content-Type": "text/plain" });
+//   res.end("WebSocket server is running");
+// });
+
+const httpServer = http.createServer(app);
 
 // Create WebSocket servers
-const wss = new WebSocket.Server({ server: httpsServer });
+// const wss = new WebSocket.Server({ server: httpsServer });
 const ws = new WebSocket.Server({ server: httpServer });
 
 // In-memory stores
@@ -79,7 +93,7 @@ Object.values(mockUsers).forEach((user) => users.set(user.id, user));
 Object.values(mockStreams).forEach((stream) => streams.set(stream.id, stream));
 
 // Handle connections for both servers
-[wss, ws].forEach((server) => {
+[ws].forEach((server) => {
   server.on("connection", (ws) => {
     console.log("Client connected");
 
@@ -624,12 +638,8 @@ function sendError(ws, code, message, details = {}) {
   );
 }
 
-const WSS_PORT = 8081;
 const WS_PORT = 8080;
 
-httpsServer.listen(WSS_PORT, () => {
-  console.log(`WebSocket Secure server listening on port ${WSS_PORT}`);
-});
 httpServer.listen(WS_PORT, () => {
   console.log(`WebSocket server listening on port ${WS_PORT}`);
 });
